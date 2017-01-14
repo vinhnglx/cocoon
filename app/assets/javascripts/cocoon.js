@@ -37,9 +37,12 @@
 
   }
 
+  var maxFields = 5;
+  var x = 0;
   $(document).on('click', '.add_fields', function(e) {
     e.preventDefault();
-    var $this                 = $(this),
+    if (x < maxFields) {
+      var $this                 = $(this),
         assoc                 = $this.data('association'),
         assocs                = $this.data('associations'),
         content               = $this.data('association-insertion-template'),
@@ -52,47 +55,47 @@
         new_id                = create_new_id(),
         new_content           = content.replace(regexp_braced, newcontent_braced(new_id)),
         new_contents          = [];
+      if (new_content == content) {
+            regexp_braced     = new RegExp('\\[new_' + assocs + '\\](.*?\\s)', 'g');
+            regexp_underscord = new RegExp('_new_' + assocs + '_(\\w*)', 'g');
+            new_content       = content.replace(regexp_braced, newcontent_braced(new_id));
+          }
 
+          new_content = new_content.replace(regexp_underscord, newcontent_underscord(new_id));
+          new_contents = [new_content];
 
-    if (new_content == content) {
-      regexp_braced     = new RegExp('\\[new_' + assocs + '\\](.*?\\s)', 'g');
-      regexp_underscord = new RegExp('_new_' + assocs + '_(\\w*)', 'g');
-      new_content       = content.replace(regexp_braced, newcontent_braced(new_id));
+          count = (isNaN(count) ? 1 : Math.max(count, 1));
+          count -= 1;
+
+          while (count) {
+            new_id      = create_new_id();
+            new_content = content.replace(regexp_braced, newcontent_braced(new_id));
+            new_content = new_content.replace(regexp_underscord, newcontent_underscord(new_id));
+            new_contents.push(new_content);
+
+            count -= 1;
+          }
+
+          var insertionNodeElem = getInsertionNodeElem(insertionNode, insertionTraversal, $this)
+
+          if( !insertionNodeElem || (insertionNodeElem.length == 0) ){
+            console.warn("Couldn't find the element to insert the template. Make sure your `data-association-insertion-*` on `link_to_add_association` is correct.")
+          }
+
+          $.each(new_contents, function(i, node) {
+            var contentNode = $(node);
+
+            insertionNodeElem.trigger('cocoon:before-insert', [contentNode]);
+
+            // allow any of the jquery dom manipulation methods (after, before, append, prepend, etc)
+            // to be called on the node.  allows the insertion node to be the parent of the inserted
+            // code and doesn't force it to be a sibling like after/before does. default: 'before'
+            var addedContent = insertionNodeElem[insertionMethod](contentNode);
+
+            insertionNodeElem.trigger('cocoon:after-insert', [contentNode]);
+          });
+      x++;
     }
-
-    new_content = new_content.replace(regexp_underscord, newcontent_underscord(new_id));
-    new_contents = [new_content];
-
-    count = (isNaN(count) ? 1 : Math.max(count, 1));
-    count -= 1;
-
-    while (count) {
-      new_id      = create_new_id();
-      new_content = content.replace(regexp_braced, newcontent_braced(new_id));
-      new_content = new_content.replace(regexp_underscord, newcontent_underscord(new_id));
-      new_contents.push(new_content);
-
-      count -= 1;
-    }
-
-    var insertionNodeElem = getInsertionNodeElem(insertionNode, insertionTraversal, $this)
-
-    if( !insertionNodeElem || (insertionNodeElem.length == 0) ){
-      console.warn("Couldn't find the element to insert the template. Make sure your `data-association-insertion-*` on `link_to_add_association` is correct.")
-    }
-
-    $.each(new_contents, function(i, node) {
-      var contentNode = $(node);
-
-      insertionNodeElem.trigger('cocoon:before-insert', [contentNode]);
-
-      // allow any of the jquery dom manipulation methods (after, before, append, prepend, etc)
-      // to be called on the node.  allows the insertion node to be the parent of the inserted
-      // code and doesn't force it to be a sibling like after/before does. default: 'before'
-      var addedContent = insertionNodeElem[insertionMethod](contentNode);
-
-      insertionNodeElem.trigger('cocoon:after-insert', [contentNode]);
-    });
   });
 
   $(document).on('click', '.remove_fields.dynamic, .remove_fields.existing', function(e) {
